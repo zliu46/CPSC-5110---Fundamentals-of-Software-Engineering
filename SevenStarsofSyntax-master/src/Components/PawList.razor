@@ -1,0 +1,226 @@
+@using ContosoCrafts.WebSite.Models
+@using ContosoCrafts.WebSite.Services
+@using Microsoft.AspNetCore.Components.Web
+@inject JsonFilePawService PawService
+
+<div>
+    <div class="row my-5">
+        <div class="col">
+            <input class="form-control-sm" type="text" @onchange="(e) => UpdateFilterText(e.Value.ToString())" id="searchInput" value="@PawToSearch" placeholder="Search Paw" />
+            <button @onclick="(e => EnableFilterData())" id="searchPaw" class="btn btn-success">Search</button>
+            <button @onclick="(e => ClearFilterData())" id="clearText" class="btn btn-danger">Clear</button>
+        </div>
+    </div>
+</div>
+
+<div class="card-columns">
+    @{
+        var pawList = PawService.GetPaws();
+
+        // If filter is enabled, search the data set to the filter string
+        if (SearchData)
+        {
+            pawList = PawService.SearchPaw(PawToSearch);
+        }
+
+        @foreach (var paw in pawList)
+        {
+            <!-- Rendering a card  -->
+            <div class="card">
+                <div class="card-img" style="background-image: url('@paw.Paw.Image');">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">@paw.Paw.Name</h5>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted mx-2">
+                        <button @onclick="(e => SelectPaw(paw.Id))" id="moreInfo_@paw.Id"
+                                data-toggle="modal" data-target="#pawModal" class="btn btn-primary btn-sm">
+                            More Info
+                        </button>
+                    </small>
+                    <small class="text-muted mx-2">
+                        <button @onclick="(e => SelectOwner(paw.Id))" id="ownerInfo_@paw.Id"
+                                data-toggle="modal" data-target="#ownerModal" class="btn btn-primary btn-sm">
+                            Owner Info
+                        </button>
+                    </small>
+
+                    @if (paw.BookingLists.Count > 0)
+                    {
+                        <small class="text-muted mx-2">
+                            <button @onclick="(e => SelectMeetup(paw.Id))" id="meetInfo_@paw.Id"
+                                    data-toggle="modal" data-target="#meetupModal" class="btn btn-primary btn-sm">
+                                Meetup Info
+                            </button>
+                        </small>
+                    }
+                </div>
+            </div>
+        }
+
+    }
+
+</div>
+
+<!-- The selected paw information will be rendered in a popup -->
+<div class="modal fade" id="pawModal" tabindex="-1" role="dialog" aria-labelledby="pawName" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <!-- change the location of if statement to slove button error -->
+        @if (selectedPaw != null)
+        {
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pawName">@selectedPaw.Paw.Name</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-img" style="background-image: url('@selectedPaw.Paw.Image');">
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">@selectedPaw.Paw.Description</p>
+                            @if (selectedPaw.Paw.Feedback != null)
+                            {
+                                <h5 class="card-text"> Feedbacks </h5>
+                                @foreach (var feedback in selectedPaw.Paw.Feedback)
+                                {
+                                    <p class="card-text"> => @feedback</p>
+                                }
+                            }
+                        </div>
+                        <div class="card-footer">
+                            <div class="row">
+                                <div class="col">
+                                    <input class="form-control-sm" type="text" @onchange="(e) => UpdateMessageText(e.Value.ToString())" id="feedbackMessage" value="@MessageText" placeholder="Search Paw" />
+                                    <button @onclick="(e => AddFeedback())" data-dismiss="modal" id="addFeedback" class="btn btn-success">Add Feedback</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="ownerModal" tabindex="-1" role="dialog" aria-labelledby="ownerName" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <!-- change the location of if statement to slove button error -->
+        @if (selectedOwner != null)
+        {
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ownerDetails">Owner Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="card-text"> Name :- @selectedOwner.Owner.Name </p>
+                            <p class="card-text"> Address :- @selectedOwner.Owner.Address </p>
+                            <p class="card-text"> Email :- @selectedOwner.Owner.Email </p>
+                            <p class="card-text"> Phone :- @selectedOwner.Owner.Phone </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="meetupModal" tabindex="-1" role="dialog" aria-labelledby="pawName" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <!-- change the location of if statement to slove button error -->
+        @if (selectedMeetup != null)
+        {
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ownerDetails">Meetup Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-body">
+                            @foreach (var meetups in selectedMeetup.BookingLists)
+                            {
+                                var pawtoMeet = PawService.GetPaws().FirstOrDefault(m => m.Id.Equals(@meetups.PawToMeet));
+
+                                <p class="card-text"> Meet With :- @pawtoMeet.Paw.Name </p>
+                                <p class="card-text"> Meet Date :- @meetups.DateOfMeetup </p>
+                                <p class="card-text"> Meet Location :- @meetups.LocationOfMeetup </p>
+                                <p class="card-text"> Message :- @meetups.SpecialMessage </p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+@code
+{
+    //ProductModel selectedProduct;
+    DetailedPawModel selectedPaw, selectedOwner, selectedMeetup;
+    string selectedPawId;
+    string PawToSearch = null;
+    string MessageText = null;
+    bool SearchData = false;
+
+    void UpdateFilterText(string text)
+    {
+        PawToSearch = text;
+    }
+
+    void ClearFilterData()
+    {
+        // If the Filter is enabled, set the filter flag
+        PawToSearch = null;
+        SearchData = false;
+    }
+
+    void EnableFilterData()
+    {
+        // If the Filter is enabled, set the filter flag
+        SearchData = true;
+    }
+
+    void SelectPaw(string pawId)
+    {
+        selectedPawId = pawId;
+        selectedPaw = PawService.GetPaws().First(x => x.Id == pawId);
+    }
+
+    void SelectMeetup(string pawId)
+    {
+        selectedPawId = pawId;
+        selectedMeetup = PawService.GetPaws().First(x => x.Id == pawId);
+    }
+
+    void SelectOwner(string pawId)
+    {
+        selectedPawId = pawId;
+        selectedOwner = PawService.GetPaws().First(x => x.Id == pawId);
+    }
+
+    void UpdateMessageText(string message)
+    {
+        MessageText = message;
+    }
+
+    void AddFeedback()
+    {
+        PawService.AddFeedckToPaw(selectedPawId, MessageText);
+        MessageText = null;
+    }
+}
